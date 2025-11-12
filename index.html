@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Chess Tournament Rankings</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        select, button {
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        select {
+            background: white;
+        }
+
+        select:hover, select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .table-container {
+            padding: 40px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 700;
+            color: #495057;
+            border-bottom: 3px solid #dee2e6;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        th:hover {
+            background: #e9ecef;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr {
+            transition: all 0.3s;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .rank-cell {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #495057;
+        }
+
+        .player-cell {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .stats-cell {
+            color: #6c757d;
+        }
+
+        .win-rate {
+            font-weight: 600;
+        }
+
+        /* Highlight styles */
+        .top-3 {
+            background: linear-gradient(to right, #fff3cd, #ffffff) !important;
+            border-left: 4px solid #ffc107;
+        }
+
+        .top-3 .rank-cell {
+            color: #ffc107;
+        }
+
+        .high-win-rate {
+            background: linear-gradient(to right, #d1ecf1, #ffffff) !important;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .high-win-rate .win-rate {
+            color: #17a2b8;
+        }
+
+        .pinned {
+            background: linear-gradient(to right, #d4edda, #ffffff) !important;
+            border-left: 4px solid #28a745;
+            font-weight: 700;
+        }
+
+        .pin-icon {
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+
+        .pin-icon:hover {
+            color: #28a745;
+            transform: scale(1.2);
+        }
+
+        .pin-icon.pinned {
+            color: #28a745;
+        }
+
+        .medal {
+            font-size: 1.5em;
+            margin-right: 5px;
+        }
+
+        .details-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .details-btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 0;
+            border-radius: 20px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close {
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+
+        .close:hover {
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(90vh - 100px);
+        }
+
+        .info-section {
+            margin-bottom: 30px;
+        }
+
+        .info-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            color: #212529;
+            font-weight: 700;
+        }
+
+        .prompt-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            select, button {
+                width: 100%;
+            }
+
+            .table-container {
+                padding: 20px;
+            }
+
+            th, td {
+                padding: 10px 5px;
+                font-size: 0.9em;
+            }
+
+            .modal-content {
+                margin: 20px;
+                max-width: calc(100% - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Prompt Chess Tournament Rankings</h1>
+            <p class="subtitle">AI Models Competing Through Strategic Prompts</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy">
+                    <option value="rank">Final Standing</option>
+                    <option value="winRate">Win Rate</option>
+                    <option value="rating">Mu Rating</option>
+                </select>
+            </div>
+            <button id="clearPin" disabled>Clear Pin</button>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">Loading tournament data...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <table id="rankingsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Pin</th>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Model</th>
+                        <th>Rating (μ)</th>
+                        <th>Rating (σ)</th>
+                        <th>Wins</th>
+                        <th>Draws</th>
+                        <th>Losses</th>
+                        <th>Games</th>
+                        <th>Win Rate</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="playerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalPlayerName"></h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let playersData = [];
+        let pinnedPlayer = null;
+        let playerConfigsMap = {};
+
+        // Load player configs mapping
+        async function loadPlayerConfigsMap() {
+            try {
+                const response = await fetch('data/player_configs.json');
+                playerConfigsMap = await response.json();
+            } catch (error) {
+                console.error('Error loading player configs map:', error);
+            }
+        }
+
+        // Load CSV data
+        async function loadCSV() {
+            try {
+                const response = await fetch('data/final_standings.csv');
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                const headers = lines[0].split(',');
+
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim()) {
+                        const values = lines[i].split(',');
+                        const player = {
+                            rank: parseInt(values[0]),
+                            player: values[1],
+                            rating_mu: parseFloat(values[2]),
+                            rating_sigma: parseFloat(values[3]),
+                            wins: parseInt(values[4]),
+                            draws: parseInt(values[5]),
+                            losses: parseInt(values[6]),
+                            games: parseInt(values[7]),
+                            win_rate: parseFloat(values[8])
+                        };
+                        data.push(player);
+                    }
+                }
+                return data;
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                throw error;
+            }
+        }
+
+        // Load YAML configuration for a player
+        async function loadPlayerConfig(playerName) {
+            try {
+                const configPath = playerConfigsMap[playerName];
+                if (!configPath) {
+                    console.warn(`No config file found for ${playerName}`);
+                    return null;
+                }
+
+                const yamlResponse = await fetch(configPath);
+                if (!yamlResponse.ok) {
+                    console.warn(`Failed to fetch config for ${playerName}`);
+                    return null;
+                }
+
+                const yamlText = await yamlResponse.text();
+                return jsyaml.load(yamlText);
+            } catch (error) {
+                console.error(`Error loading config for ${playerName}:`, error);
+                return null;
+            }
+        }
+
+        // Render table
+        function renderTable(sortBy = 'rank') {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            // Sort data
+            let sortedData = [...playersData];
+
+            if (sortBy === 'rank') {
+                sortedData.sort((a, b) => a.rank - b.rank);
+            } else if (sortBy === 'winRate') {
+                sortedData.sort((a, b) => b.win_rate - a.win_rate);
+            } else if (sortBy === 'rating') {
+                sortedData.sort((a, b) => b.rating_mu - a.rating_mu);
+            }
+
+            // Separate pinned player
+            const pinnedData = pinnedPlayer ? sortedData.filter(p => p.player === pinnedPlayer) : [];
+            const unpinnedData = pinnedPlayer ? sortedData.filter(p => p.player !== pinnedPlayer) : sortedData;
+
+            const finalData = [...pinnedData, ...unpinnedData];
+
+            // Render rows
+            finalData.forEach((player, index) => {
+                const row = document.createElement('tr');
+
+                // Determine if player should be highlighted
+                const isTop3 = player.rank <= 3;
+                const isHighWinRate = player.win_rate >= 0.8;
+                const isPinned = player.player === pinnedPlayer;
+
+                if (isPinned) {
+                    row.classList.add('pinned');
+                } else if (isTop3) {
+                    row.classList.add('top-3');
+                } else if (isHighWinRate) {
+                    row.classList.add('high-win-rate');
+                }
+
+                // Medal for top 3
+                let medal = '';
+                if (player.rank === 1) medal = '🥇';
+                else if (player.rank === 2) medal = '🥈';
+                else if (player.rank === 3) medal = '🥉';
+
+                row.innerHTML = `
+                    <td>
+                        <span class="pin-icon ${isPinned ? 'pinned' : ''}" data-player="${player.player}">
+                            ${isPinned ? '📌' : '📍'}
+                        </span>
+                    </td>
+                    <td class="rank-cell">${medal}${player.rank}</td>
+                    <td class="player-cell">${player.player}</td>
+                    <td class="stats-cell" id="model-${player.player}">Loading...</td>
+                    <td class="stats-cell">${player.rating_mu.toFixed(2)}</td>
+                    <td class="stats-cell">${player.rating_sigma.toFixed(2)}</td>
+                    <td class="stats-cell">${player.wins}</td>
+                    <td class="stats-cell">${player.draws}</td>
+                    <td class="stats-cell">${player.losses}</td>
+                    <td class="stats-cell">${player.games}</td>
+                    <td class="win-rate">${(player.win_rate * 100).toFixed(1)}%</td>
+                    <td>
+                        <button class="details-btn" data-player="${player.player}">View Details</button>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+
+                // Load player config asynchronously
+                loadPlayerConfigAndUpdate(player.player);
+            });
+
+            // Add event listeners for pin icons
+            document.querySelectorAll('.pin-icon').forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const player = this.getAttribute('data-player');
+                    togglePin(player);
+                });
+            });
+
+            // Add event listeners for details buttons
+            document.querySelectorAll('.details-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const player = this.getAttribute('data-player');
+                    showPlayerDetails(player);
+                });
+            });
+        }
+
+        // Load player config and update table
+        async function loadPlayerConfigAndUpdate(playerName) {
+            const config = await loadPlayerConfig(playerName);
+            const modelCell = document.getElementById(`model-${playerName}`);
+
+            if (config && config.agent0 && config.agent0.model) {
+                const model = config.agent0.model;
+                modelCell.textContent = `${model.provider}: ${model.name}`;
+            } else {
+                modelCell.textContent = 'N/A';
+            }
+        }
+
+        // Toggle pin
+        function togglePin(player) {
+            if (pinnedPlayer === player) {
+                pinnedPlayer = null;
+                document.getElementById('clearPin').disabled = true;
+            } else {
+                pinnedPlayer = player;
+                document.getElementById('clearPin').disabled = false;
+            }
+            renderTable(document.getElementById('sortBy').value);
+        }
+
+        // Show player details modal
+        async function showPlayerDetails(playerName) {
+            const modal = document.getElementById('playerModal');
+            const modalBody = document.getElementById('modalBody');
+            const modalTitle = document.getElementById('modalPlayerName');
+
+            modalTitle.textContent = playerName;
+            modalBody.innerHTML = '<div class="loading">Loading player details...</div>';
+            modal.style.display = 'block';
+
+            const player = playersData.find(p => p.player === playerName);
+            const config = await loadPlayerConfig(playerName);
+
+            let html = '<div class="info-section">';
+            html += '<h3>Statistics</h3>';
+            html += '<div class="info-grid">';
+            html += `<div class="info-item"><div class="info-label">Rank</div><div class="info-value">#${player.rank}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Rating (μ)</div><div class="info-value">${player.rating_mu.toFixed(2)}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Rating (σ)</div><div class="info-value">${player.rating_sigma.toFixed(2)}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Win Rate</div><div class="info-value">${(player.win_rate * 100).toFixed(1)}%</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Wins</div><div class="info-value">${player.wins}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Draws</div><div class="info-value">${player.draws}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Losses</div><div class="info-value">${player.losses}</div></div>`;
+            html += `<div class="info-item"><div class="info-label">Total Games</div><div class="info-value">${player.games}</div></div>`;
+            html += '</div></div>';
+
+            if (config && config.agent0) {
+                const agent = config.agent0;
+
+                html += '<div class="info-section">';
+                html += '<h3>Model Configuration</h3>';
+                if (agent.model) {
+                    html += '<div class="info-grid">';
+                    html += `<div class="info-item"><div class="info-label">Provider</div><div class="info-value">${agent.model.provider || 'N/A'}</div></div>`;
+                    html += `<div class="info-item"><div class="info-label">Model</div><div class="info-value">${agent.model.name || 'N/A'}</div></div>`;
+                    if (agent.model.params) {
+                        html += `<div class="info-item"><div class="info-label">Temperature</div><div class="info-value">${agent.model.params.temperature || 'N/A'}</div></div>`;
+                        if (agent.model.params.top_p) {
+                            html += `<div class="info-item"><div class="info-label">Top P</div><div class="info-value">${agent.model.params.top_p}</div></div>`;
+                        }
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+
+                if (agent.prompts) {
+                    html += '<div class="info-section">';
+                    html += '<h3>System Prompt</h3>';
+                    html += `<div class="prompt-box">${agent.prompts.system_prompt || 'N/A'}</div>`;
+                    html += '</div>';
+
+                    html += '<div class="info-section">';
+                    html += '<h3>Step-wise Prompt</h3>';
+                    html += `<div class="prompt-box">${agent.prompts.step_wise_prompt || 'N/A'}</div>`;
+                    html += '</div>';
+                }
+            } else {
+                html += '<div class="error">Configuration file not found for this player.</div>';
+            }
+
+            modalBody.innerHTML = html;
+        }
+
+        // Initialize
+        async function init() {
+            try {
+                await loadPlayerConfigsMap();
+                playersData = await loadCSV();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('rankingsTable').style.display = 'table';
+                renderTable();
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = 'Error loading tournament data: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('sortBy').addEventListener('change', function() {
+            renderTable(this.value);
+        });
+
+        document.getElementById('clearPin').addEventListener('click', function() {
+            pinnedPlayer = null;
+            this.disabled = true;
+            renderTable(document.getElementById('sortBy').value);
+        });
+
+        // Modal close
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('playerModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('playerModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
