@@ -50,6 +50,7 @@ yarn-error.log*
 # Logs
 *.log
 logs/
+!logs/.gitkeep
 
 # Environment variables
 .env
