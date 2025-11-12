@@ -108,6 +108,22 @@
             transform: none;
         }
 
+        button.highlight-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        button.highlight-btn:hover {
+            background: #f0f3ff;
+        }
+
+        button.highlight-btn.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
         .table-container {
             padding: 40px;
             overflow-x: auto;
@@ -236,12 +252,19 @@
         }
 
         .high-win-rate {
-            background: linear-gradient(to right, #d1ecf1, #ffffff) !important;
-            border-left: 4px solid #17a2b8;
+            background: linear-gradient(135deg, #00d4ff, #a2e7f5, #ffffff) !important;
+            border-left: 6px solid #17a2b8;
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
         }
 
         .high-win-rate .win-rate {
             color: #17a2b8;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(23, 162, 184, 0.3);
+        }
+
+        .high-win-rate .player-cell {
+            font-weight: 700;
         }
 
         .pinned {
@@ -469,6 +492,12 @@
                     <option value="rating">Mu Rating</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label>Highlights:</label>
+                <button id="highlightTop3" class="highlight-btn active">🏆 Top 3</button>
+                <button id="highlightHighWinRate" class="highlight-btn">⚡ 80%+ Win Rate</button>
+                <button id="highlightNone" class="highlight-btn">Clear Highlights</button>
+            </div>
             <button id="clearPin" disabled>Clear Pin</button>
         </div>
 
@@ -514,6 +543,7 @@
         let playersData = [];
         let pinnedPlayer = null;
         let playerConfigsMap = {};
+        let highlightMode = 'top3'; // 'top3', 'highWinRate', or 'none'
 
         // Load player configs mapping
         async function loadPlayerConfigsMap() {
@@ -612,16 +642,19 @@
                 const isPinned = player.player === pinnedPlayer;
                 const isThirdPlaceWithLowWinRate = player.rank === 3 && player.win_rate < 0.8;
 
-                // Apply gradient styling for top 3
+                // Apply styling based on highlight mode
                 if (isPinned) {
                     row.classList.add('pinned');
-                } else if (player.rank === 1) {
-                    row.classList.add('rank-1');
-                } else if (player.rank === 2) {
-                    row.classList.add('rank-2');
-                } else if (player.rank === 3) {
-                    row.classList.add('rank-3');
-                } else if (isHighWinRate) {
+                } else if (highlightMode === 'top3') {
+                    // Apply gradient styling for top 3
+                    if (player.rank === 1) {
+                        row.classList.add('rank-1');
+                    } else if (player.rank === 2) {
+                        row.classList.add('rank-2');
+                    } else if (player.rank === 3) {
+                        row.classList.add('rank-3');
+                    }
+                } else if (highlightMode === 'highWinRate' && isHighWinRate) {
                     row.classList.add('high-win-rate');
                 }
 
@@ -631,9 +664,9 @@
                 else if (player.rank === 2) medal = '🥈';
                 else if (player.rank === 3) medal = '🥉';
 
-                // Warning indicator for 3rd place with low win rate
+                // Warning indicator for 3rd place with low win rate (only in top3 mode)
                 let warningIndicator = '';
-                if (isThirdPlaceWithLowWinRate) {
+                if (highlightMode === 'top3' && isThirdPlaceWithLowWinRate) {
                     warningIndicator = `<span class="low-win-rate-warning" title="Win rate below 80% - Lower than expected for top 3!">❗</span>`;
                 }
 
@@ -793,6 +826,28 @@
         document.getElementById('clearPin').addEventListener('click', function() {
             pinnedPlayer = null;
             this.disabled = true;
+            renderTable(document.getElementById('sortBy').value);
+        });
+
+        // Highlight mode buttons
+        document.getElementById('highlightTop3').addEventListener('click', function() {
+            highlightMode = 'top3';
+            document.querySelectorAll('.highlight-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            renderTable(document.getElementById('sortBy').value);
+        });
+
+        document.getElementById('highlightHighWinRate').addEventListener('click', function() {
+            highlightMode = 'highWinRate';
+            document.querySelectorAll('.highlight-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            renderTable(document.getElementById('sortBy').value);
+        });
+
+        document.getElementById('highlightNone').addEventListener('click', function() {
+            highlightMode = 'none';
+            document.querySelectorAll('.highlight-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
             renderTable(document.getElementById('sortBy').value);
         });
 
