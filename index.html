@@ -173,6 +173,59 @@
         }
 
         /* Highlight styles */
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700, #ffed4e, #ffffff) !important;
+            border-left: 6px solid #ffd700;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .rank-1 .rank-cell {
+            color: #b8860b;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0, #e8e8e8, #ffffff) !important;
+            border-left: 6px solid #c0c0c0;
+            box-shadow: 0 2px 8px rgba(192, 192, 192, 0.3);
+        }
+
+        .rank-2 .rank-cell {
+            color: #696969;
+            text-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32, #e5a76f, #ffffff) !important;
+            border-left: 6px solid #cd7f32;
+            box-shadow: 0 2px 8px rgba(205, 127, 50, 0.3);
+        }
+
+        .rank-3 .rank-cell {
+            color: #8b4513;
+            text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+        }
+
+        .low-win-rate-warning {
+            display: inline-block;
+            margin-left: 10px;
+            color: #dc3545;
+            font-size: 1.2em;
+            animation: pulse 2s infinite;
+            cursor: help;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+
         .top-3 {
             background: linear-gradient(to right, #fff3cd, #ffffff) !important;
             border-left: 4px solid #ffc107;
@@ -555,14 +608,19 @@
                 const row = document.createElement('tr');
 
                 // Determine if player should be highlighted
-                const isTop3 = player.rank <= 3;
                 const isHighWinRate = player.win_rate >= 0.8;
                 const isPinned = player.player === pinnedPlayer;
+                const isThirdPlaceWithLowWinRate = player.rank === 3 && player.win_rate < 0.8;
 
+                // Apply gradient styling for top 3
                 if (isPinned) {
                     row.classList.add('pinned');
-                } else if (isTop3) {
-                    row.classList.add('top-3');
+                } else if (player.rank === 1) {
+                    row.classList.add('rank-1');
+                } else if (player.rank === 2) {
+                    row.classList.add('rank-2');
+                } else if (player.rank === 3) {
+                    row.classList.add('rank-3');
                 } else if (isHighWinRate) {
                     row.classList.add('high-win-rate');
                 }
@@ -573,6 +631,12 @@
                 else if (player.rank === 2) medal = '🥈';
                 else if (player.rank === 3) medal = '🥉';
 
+                // Warning indicator for 3rd place with low win rate
+                let warningIndicator = '';
+                if (isThirdPlaceWithLowWinRate) {
+                    warningIndicator = `<span class="low-win-rate-warning" title="Win rate below 80% - Lower than expected for top 3!">❗</span>`;
+                }
+
                 row.innerHTML = `
                     <td>
                         <span class="pin-icon ${isPinned ? 'pinned' : ''}" data-player="${player.player}">
@@ -580,7 +644,7 @@
                         </span>
                     </td>
                     <td class="rank-cell">${medal}${player.rank}</td>
-                    <td class="player-cell">${player.player}</td>
+                    <td class="player-cell">${player.player}${warningIndicator}</td>
                     <td class="stats-cell" id="model-${player.player}">Loading...</td>
                     <td class="stats-cell">${player.rating_mu.toFixed(2)}</td>
                     <td class="stats-cell">${player.rating_sigma.toFixed(2)}</td>
